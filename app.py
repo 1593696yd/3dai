@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
 import os
+from collections import Counter
 
-st.set_page_config(page_title="云端 3D 量化终端", page_icon="⚡", layout="centered")
-st.title("⚡ 云端 3D 量化策略终端")
+st.set_page_config(page_title="3D 量化终端", page_icon="⚡", layout="centered")
+st.title("⚡ 3D 量化策略终端 (实战版)")
 
-# 核心算法
 WAN_NENG_4 = ["2579", "2678", "5689", "0368", "0679", "3789", "0178", "0489", "1479", "0159", "0258", "1289", "0126", "0239", "1369", "0134", "0247", "1237", "1245", "1358", "2348", "2356", "2469", "3459", "0357", "0456", "3467", "1468", "1567", "4578"]
 DUI_MA = {'0': '5', '1': '6', '2': '7', '3': '8', '4': '9', '5': '0', '6': '1', '7': '2', '8': '3', '9': '4'}
 
@@ -34,17 +34,46 @@ def get_wan4_18(num_str):
                             for k in range(j+1, 4): groups.add("".join(sorted([code[i], code[j], code[k]])))
     return sorted(list(groups))
 
+@st.cache_data
+def load_data():
+    if os.path.exists("fc3d_history_full.csv"):
+        try:
+            df = pd.read_csv("fc3d_history_full.csv", encoding="utf-8-sig")
+            nums = []
+            for _, row in df.iterrows():
+                try:
+                    row_str = str(row.iloc[1]) + str(row.iloc[2]) + str(row.iloc[3])
+                    if row_str.isdigit() and len(row_str) == 3:
+                        nums.append(row_str)
+                except:
+                    continue
+            return nums[-200:] 
+        except Exception as e:
+            return []
+    return [] 
+
+history_nums = load_data()
+
 st.sidebar.header("输入最新开奖号")
 last_num = st.sidebar.text_input("上期号码 (如 435)", "813")
 
 if len(last_num) == 3 and last_num.isdigit():
     wan4_groups = get_wan4_18(last_num)
+    
+    if history_nums:
+        st.sidebar.success(f"✅ 已成功加载 {len(history_nums)} 期历史数据！")
+        digit_counts = Counter()
+        for n in history_nums:
+            for d in n: digit_counts[d] += 1
+        sorted_counts = sorted(digit_counts.items(), key=lambda x: x[1], reverse=True)
+        hot_dan = [sorted_counts[0][0], sorted_counts[1][0], sorted_counts[2][0], sorted_counts[3][0]]
+        kill = [sorted_counts[-1][0], sorted_counts[-2][0]]
+    else:
+        st.sidebar.warning("⚠️ 没找到 CSV 数据，使用模拟 AI 预测。")
+        hot_dan = ["3", "8", "4", "5"]
+        kill = ["0", "1"]
+
     st.subheader(f"🔥 最新预测：{last_num} 推演")
-    
-    # 简易AI（暂时用假数据，因为云端还没CSV）
-    hot_dan = ["3", "8", "4", "5"]
-    kill = ["0", "1"]
-    
     col1, col2 = st.columns(2)
     col1.success(f"定胆：{', '.join(hot_dan)}")
     col2.error(f"杀号：{', '.join(kill)}")
@@ -59,4 +88,4 @@ if len(last_num) == 3 and last_num.isdigit():
         st.subheader(f"⚠️ 关注单 ({len(filtered)}注)")
         st.write("  ".join(filtered))
 else:
-    st.warning("请输入正确的3位数字")
+    st.warning("请在左侧输入正确的 3 位数字")
