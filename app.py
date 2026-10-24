@@ -15,22 +15,31 @@ MAPPING_TABLE = {"0134": ["2579", "2678", "5689"], "1245": ["0368", "0679", "378
 def convert_number(num_str):
     a, b, c = num_str[0], num_str[1], num_str[2]
     ta, tb, tc = a, b, c
-    if a == b == c: ta, tb, tc = a, DUI_MA[b], str((int(c) + 9) % 10)
+    if a == b == c: 
+        ta, tb, tc = a, DUI_MA[b], str((int(c) + 9) % 10)
     elif a == b or a == c or b == c:
-        if a == b: tb = DUI_MA[b]; tc = c if tb != c else str((int(b) + 9) % 10)
-        elif b == c: tc = DUI_MA[c]; tc = str((int(c) + 9) % 10) if tc == a else tc
-        elif a == c: tc = DUI_MA[c]; tc = str((int(c) + 9) % 10) if tc == b else tc
+        if a == b: 
+            tb = DUI_MA[b]
+            tc = c if tb != c else str((int(b) + 9) % 10)
+        elif b == c: 
+            tc = DUI_MA[c]
+            tc = str((int(c) + 9) % 10) if tc == a else tc
+        elif a == c: 
+            tc = DUI_MA[c]
+            tc = str((int(c) + 9) % 10) if tc == b else tc
     return ta + tb + tc
 
 def get_wan4_18(num_str):
     target_3d = convert_number(num_str)
     base_4d = next((code for code in WAN_NENG_4 if all(d in code for d in target_3d)), "")
-    if not base_4d: return []
+    if not base_4d: 
+        return []
     remainder = [str(i) for i in range(10) if str(i) not in base_4d]
     pairs = [base_4d[i] + base_4d[j] for i in range(4) for j in range(i+1, 4)]
     candidates = set([base_4d])
     for code in WAN_NENG_4:
-        if code == base_4d: continue
+        if code == base_4d: 
+            continue
         for pair in pairs:
             if pair[0] in code and pair[1] in code:
                 others = set(code) - set(pair)
@@ -42,17 +51,20 @@ def get_wan4_18(num_str):
 def get_qi7(num_str):
     target_3d = convert_number(num_str)
     base_4d = next((code for code in WAN_NENG_4 if all(d in code for d in target_3d)), "")
-    if not base_4d: return []
+    if not base_4d: 
+        return []
     baseArr = list(base_4d)
     targetArr = list(target_3d)
     lone = next((d for d in baseArr if d not in targetArr), "")
     pool = [str(i) for i in range(10) if str(i) not in baseArr]
     aux4s = []
     for code in WAN_NENG_4:
-        if code == base_4d: continue
+        if code == base_4d: 
+            continue
         if lone in code:
             others = [d for d in code if d != lone]
-            if all(d in pool for d in others): aux4s.append(code)
+            if all(d in pool for d in others): 
+                aux4s.append(code)
     all4s = [base_4d] + aux4s
     result = set()
     for i in range(len(all4s)):
@@ -64,7 +76,8 @@ def get_break_groups(num_str):
     target = convert_number(num_str)
     base4 = next((code for code in WAN_NENG_4 if all(d in code for d in target)), "")
     wan10 = next((key for key in MAPPING_TABLE if MAPPING_TABLE[key].count(base4) > 0 or key == base4), "")
-    if not wan10: return []
+    if not wan10: 
+        return ["", "", ""]
     remainder = [str(i) for i in range(10) if str(i) not in wan10]
     B = [d for d in remainder if d in ['0','2','4','6','8']]
     C = [d for d in remainder if d not in ['0','2','4','6','8']]
@@ -82,8 +95,9 @@ def load_data():
                 try:
                     n1, n2, n3 = int(float(row[-3])), int(float(row[-2])), int(float(row[-1]))
                     nums.append(f"{n1}{n2}{n3}")
-                except: pass
-    return nums[-50:] # 取最近50期用于展示和计算
+                except: 
+                    pass
+    return nums[-50:] 
 
 history_nums = load_data()
 
@@ -93,24 +107,19 @@ last_num = st.sidebar.text_input("上期号码 (如 435)", "813")
 
 if len(last_num) == 3 and last_num.isdigit():
     
-    # 1. 算冷热 AI
     digit_counts = Counter()
     for n in history_nums:
         for d in n: digit_counts[d] += 1
     sorted_counts = sorted(digit_counts.items(), key=lambda x: x[1], reverse=True)
-    hot_dan = [sorted_counts[0][0], sorted_counts[1][0], sorted_counts[2][0], sorted_counts[3][0]]
-    kill = [sorted_counts[-1][0], sorted_counts[-2][0]]
+    
+    # 加上安全判断，防止没数据报错
+    if len(sorted_counts) >= 4:
+        hot_dan = [sorted_counts[0][0], sorted_counts[1][0], sorted_counts[2][0], sorted_counts[3][0]]
+        kill = [sorted_counts[-1][0], sorted_counts[-2][0]]
+    else:
+        hot_dan = ["3", "8", "4", "5"]
+        kill = ["0", "1"]
 
-    # 2. 基础推演
     wan4_list = get_wan4_18(last_num)
     qi7_list = get_qi7(last_num)
-    duan_groups = get_break_groups(last_num)
-
-    # --- 第一部分：下期核心预测 ---
-    st.subheader("🔥 下期核心预测")
-    
-    # 三组七码展示
-    st.markdown(f"**🛡️ 三组七码**：")
-    c1, c2, c3 = st.columns(3)
-    c1.info(f"A组：{qi7_list[0] if len(qi7_list)>0 else '无'}")
-    c2.success(f"B组：{qi7_list[1] if len(qi7_list)>1 else '无
+    duan_groups = get_break
