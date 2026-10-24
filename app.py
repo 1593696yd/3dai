@@ -34,33 +34,26 @@ def get_wan4_18(num_str):
                             for k in range(j+1, 4): groups.add("".join(sorted([code[i], code[j], code[k]])))
     return sorted(list(groups))
 
-# ================= 核心：纯原生 CSV 读取 =================
+# ================= 适配你表格的精准读取 =================
 def load_data():
-    # 把当前服务器文件夹里的所有文件打印在后台
-    files = os.listdir('.')
     file_name = "fc3d_history_full.csv"
-    
-    # 如果没找到，尝试模糊匹配
-    if file_name not in files:
-        for f in files:
-            if "fc3d" in f.lower() and f.endswith(".csv"):
-                file_name = f
-                break
-
     if not os.path.exists(file_name):
-        return [], f"❌ 文件夹里根本没有 CSV！当前文件有：{files}"
+        return [], f"❌ 找不到文件：{file_name}"
 
     nums = []
     try:
         with open(file_name, 'r', encoding='utf-8-sig') as f:
             reader = csv.reader(f)
             for row in reader:
+                # 根据你的截图，总共5列，最后三列必定是百、十、个位
                 if len(row) >= 4:
                     try:
-                        # 直接用列索引拼接，确保没有空格或小数
-                        row_str = str(row[1]).strip() + str(row[2]).strip() + str(row[3]).strip()
-                        if row_str.isdigit() and len(row_str) == 3:
-                            nums.append(row_str)
+                        # 取最后三列，强转整数防止小数点干扰
+                        n1 = int(float(row[-3]))
+                        n2 = int(float(row[-2]))
+                        n3 = int(float(row[-1]))
+                        num_str = f"{n1}{n2}{n3}"
+                        nums.append(num_str)
                     except:
                         pass
         return nums[-200:], f"✅ 成功读取 {len(nums)} 期数据 (展示最近 {len(nums[-200:])} 期)"
@@ -84,7 +77,7 @@ if len(last_num) == 3 and last_num.isdigit():
         hot_dan = [sorted_counts[0][0], sorted_counts[1][0], sorted_counts[2][0], sorted_counts[3][0]]
         kill = [sorted_counts[-1][0], sorted_counts[-2][0]]
     else:
-        st.sidebar.error(msg) # 用红字把真实原因显示出来
+        st.sidebar.error(msg) 
         hot_dan = ["3", "8", "4", "5"]
         kill = ["0", "1"]
 
