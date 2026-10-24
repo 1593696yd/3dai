@@ -5,7 +5,7 @@ import pandas as pd
 from collections import Counter
 
 st.set_page_config(page_title="3D 量化终端", page_icon="⚡", layout="wide")
-st.title("⚡ 3D 量化策略终端 (大满贯版)")
+st.title("⚡ 3D 量化策略终端 (赛博云端版)")
 
 # ================= 核心算法 =================
 WAN_NENG_4 = ["2579", "2678", "5689", "0368", "0679", "3789", "0178", "0489", "1479", "0159", "0258", "1289", "0126", "0239", "1369", "0134", "0247", "1237", "1245", "1358", "2348", "2356", "2469", "3459", "0357", "0456", "3467", "1468", "1567", "4578"]
@@ -38,6 +38,27 @@ def get_wan4_18(num_str):
                     candidates.add(code)
                     break
     return sorted(list(candidates))
+
+def get_qi7(num_str):
+    target_3d = convert_number(num_str)
+    base_4d = next((code for code in WAN_NENG_4 if all(d in code for d in target_3d)), "")
+    if not base_4d: return []
+    baseArr = list(base_4d)
+    targetArr = list(target_3d)
+    lone = next((d for d in baseArr if d not in targetArr), "")
+    pool = [str(i) for i in range(10) if str(i) not in baseArr]
+    aux4s = []
+    for code in WAN_NENG_4:
+        if code == base_4d: continue
+        if lone in code:
+            others = [d for d in code if d != lone]
+            if all(d in pool for d in others): aux4s.append(code)
+    all4s = [base_4d] + aux4s
+    result = set()
+    for i in range(len(all4s)):
+        for j in range(i+1, len(all4s)):
+            result.add("".join(sorted(set(all4s[i] + all4s[j]))))
+    return sorted(list(result))
 
 def get_break_groups(num_str):
     target = convert_number(num_str)
@@ -82,38 +103,14 @@ if len(last_num) == 3 and last_num.isdigit():
 
     # 2. 基础推演
     wan4_list = get_wan4_18(last_num)
+    qi7_list = get_qi7(last_num)
     duan_groups = get_break_groups(last_num)
 
     # --- 第一部分：下期核心预测 ---
     st.subheader("🔥 下期核心预测")
-    col1, col2, col3 = st.columns(3)
-    col1.success(f"**定胆**：{', '.join(hot_dan)}")
-    col2.error(f"**杀号**：{', '.join(kill)}")
-    col3.info(f"**断组**：A组({duan_groups[0]}) B组({duan_groups[1]}) C组({duan_groups[2]})")
-
-    # --- 第二部分：万四大底与刺客缩水 ---
-    st.markdown("---")
-    st.subheader("🎯 万四推演与缩水")
     
-    # 找出万四的组选
-    wan4_pool = set()
-    for code in wan4_list:
-        for i in range(4):
-            for j in range(i+1, 4):
-                for k in range(j+1, 4):
-                    wan4_pool.add("".join(sorted([code[i], code[j], code[k]])))
-    wan4_pool = sorted(list(wan4_pool))
-
-    # 刺客缩水 (中定胆，避开杀号)
-    filtered = [g for g in wan4_pool if any(d in g for d in hot_dan) and not any(k in g for k in kill)]
-    
-    with st.expander(f"📦 展开查看 18组万四底池 (共生成 {len(wan4_pool)} 注组六)"):
-        st.write("  ".join(wan4_pool))
-
-    if len(filtered) <= 15:
-        st.success(f"**触发刺客！极简单 ({len(filtered)}注)**")
-    else:
-        st.warning(f"**关注单 ({len(filtered)}注)**")
-    st.code("  ".join(filtered), language="text")
-
-    # --- 第三部分：历史走势复盘 --
+    # 三组七码展示
+    st.markdown(f"**🛡️ 三组七码**：")
+    c1, c2, c3 = st.columns(3)
+    c1.info(f"A组：{qi7_list[0] if len(qi7_list)>0 else '无'}")
+    c2.success(f"B组：{qi7_list[1] if len(qi7_list)>1 else '无
