@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd
+import csv
 import os
 from collections import Counter
 
@@ -34,25 +34,40 @@ def get_wan4_18(num_str):
                             for k in range(j+1, 4): groups.add("".join(sorted([code[i], code[j], code[k]])))
     return sorted(list(groups))
 
-@st.cache_data
+# ================= 核心：纯原生 CSV 读取 =================
 def load_data():
-    if os.path.exists("fc3d_history_full.csv"):
-        try:
-            df = pd.read_csv("fc3d_history_full.csv", encoding="utf-8-sig")
-            nums = []
-            for _, row in df.iterrows():
-                try:
-                    row_str = str(row.iloc[1]) + str(row.iloc[2]) + str(row.iloc[3])
-                    if row_str.isdigit() and len(row_str) == 3:
-                        nums.append(row_str)
-                except:
-                    continue
-            return nums[-200:] 
-        except Exception as e:
-            return []
-    return [] 
+    # 把当前服务器文件夹里的所有文件打印在后台
+    files = os.listdir('.')
+    file_name = "fc3d_history_full.csv"
+    
+    # 如果没找到，尝试模糊匹配
+    if file_name not in files:
+        for f in files:
+            if "fc3d" in f.lower() and f.endswith(".csv"):
+                file_name = f
+                break
 
-history_nums = load_data()
+    if not os.path.exists(file_name):
+        return [], f"❌ 文件夹里根本没有 CSV！当前文件有：{files}"
+
+    nums = []
+    try:
+        with open(file_name, 'r', encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if len(row) >= 4:
+                    try:
+                        # 直接用列索引拼接，确保没有空格或小数
+                        row_str = str(row[1]).strip() + str(row[2]).strip() + str(row[3]).strip()
+                        if row_str.isdigit() and len(row_str) == 3:
+                            nums.append(row_str)
+                    except:
+                        pass
+        return nums[-200:], f"✅ 成功读取 {len(nums)} 期数据 (展示最近 {len(nums[-200:])} 期)"
+    except Exception as e:
+        return [], f"❌ 读取失败：{e}"
+
+history_nums, msg = load_data()
 
 st.sidebar.header("输入最新开奖号")
 last_num = st.sidebar.text_input("上期号码 (如 435)", "813")
@@ -61,7 +76,7 @@ if len(last_num) == 3 and last_num.isdigit():
     wan4_groups = get_wan4_18(last_num)
     
     if history_nums:
-        st.sidebar.success(f"✅ 已成功加载 {len(history_nums)} 期历史数据！")
+        st.sidebar.success(msg)
         digit_counts = Counter()
         for n in history_nums:
             for d in n: digit_counts[d] += 1
@@ -69,7 +84,7 @@ if len(last_num) == 3 and last_num.isdigit():
         hot_dan = [sorted_counts[0][0], sorted_counts[1][0], sorted_counts[2][0], sorted_counts[3][0]]
         kill = [sorted_counts[-1][0], sorted_counts[-2][0]]
     else:
-        st.sidebar.warning("⚠️ 没找到 CSV 数据，使用模拟 AI 预测。")
+        st.sidebar.error(msg) # 用红字把真实原因显示出来
         hot_dan = ["3", "8", "4", "5"]
         kill = ["0", "1"]
 
